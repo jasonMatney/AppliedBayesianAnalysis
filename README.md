@@ -1,4 +1,4 @@
-# AppliedBayesianAnalysis
+# Applied Bayesian Analysis
 R / JAGS code for the course
 
 Fundamental conceptual, computational, and practical methods of Bayesian data analysis. 
