@@ -1,0 +1,108 @@
+---
+  output: pdf_document
+---
+  
+```{r chunk_name, echo=T}
+#------------------------------
+# ST590-A5
+#------------------------------
+
+rm(list=ls())
+#------------------------------#------------------------------
+#  R code of the Gibbs samplers. 
+#------------------------------#------------------------------
+dat   <- read.csv("http://www4.stat.ncsu.edu/~reich/ST590/code/ConcussionsByTeamAndYear.csv")
+team  <- dat[,1]
+Y2012 <- dat[,2]
+Y2013 <- dat[,3]
+Ytot  <- Y2012+Y2013
+
+n <- length(Ytot)
+a <- 1
+
+n.iters <- 15000
+burnIn <- 5000
+keepers <- matrix(0,n.iters,n+1)
+
+set.seed(2016)
+#------------------------------#------------------------------
+# Initial values
+#------------------------------#------------------------------
+gamma <- rgamma(1, shape=0.1, rate=0.1)
+lambda <- rgamma(n,shape=a, rate=gamma)
+keepers[1,] <- c(lambda, gamma)
+
+#------------------------------#------------------------------
+# Gibbs Sampler
+#------------------------------#------------------------------
+for(iter in 2:n.iters){
+
+  # sample gamma
+  gamma <- rgamma(1, shape=n*a+0.1, rate=0.1+sum(lambda))
+
+  # sample lambda
+  lambda <- rgamma(n, shape=Ytot+a, rate=1+gamma)
+  
+  # keep track of the results
+  keepers[iter,] <- c(lambda, gamma)
+  
+}
+
+#------------------------------#------------------------------
+# Posteriors summary
+#------------------------------#------------------------------
+posteriors <- keepers[burnIn:n.iters,]
+
+# posterior mean of lambda. 
+post.mean.lambda <- apply(posteriors[,1:n], 2, mean)
+options(digits=3)
+post.mean.lambda
+
+# par(mfrow=c(2,2))
+# plot posterior mean of lambda vs n observations. 
+plot(post.mean.lambda, Ytot, xlab="Posterior mean of lambda", main="a=1")
+
+# provide a posterior histogram of gamma. 
+hist(posteriors[,n+1], freq=F,breaks=30,xlab="Posteriors of gamma",main="a=1")
+
+
+#------------------------------#------------------------------
+# R JAGS
+#------------------------------#------------------------------
+model_string <- "model{
+
+# Likelihood
+for(i in 1:n){
+Ytot[i] ~ dpois(lambda[i])
+}
+
+# prior for gamma
+gamma ~ dgamma(0.1, 0.1)
+
+# Prior for lambda
+for(i in 1:n){
+lambda[i] ~ dgamma(a,gamma)
+}
+}"
+
+model <- jags.model(textConnection(model_string), 
+                    n.chains = 3,
+                    data = list(Ytot=Ytot,n=n,a=a))
+
+
+update(model, 5000, progress.bar="none"); # Burnin for 5000 samples
+
+samp <- coda.samples(model, 
+                     variable.names=c("gamma","lambda"), 
+                     n.iter=10000, progress.bar="none")
+
+summary(samp)
+
+# plot posterior mean of lambda vs n observations. 
+plot(apply(samp[[1]][,2:(n+1)],2,mean), Ytot, xlab="Posterior mean of lambda (JAGS)", main="a=1")
+
+# provide a posterior histogram of gamma. 
+hist(samp[[1]][,1], freq=F,breaks=30,xlab="Posteriors of gamma (JAGS)",main="a=1")
+
+```
+
