@@ -5,8 +5,6 @@
 ```{r chunk_name, echo=T}
 #------------------------------
 # ST590-A4
-# Author: Yan (Dora) Zhang
-# Date: Feb 11, 2016
 #------------------------------
 
 rm(list=ls())
