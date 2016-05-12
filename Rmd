@@ -1,0 +1,88 @@
+---
+  output: pdf_document
+---
+
+```{r chunk_name, echo=T}
+#------------------------------
+# ST590-A2
+#------------------------------
+
+
+#------------------------------#------------------------------
+#  (a) Write a function that uses Monte Carlo sampling to estimate the posterior mean and standard
+#      deviation of ?? given we observe Y = y.
+#------------------------------#------------------------------
+M <- 100000
+MCMC <- function(y,n,a,b){
+  theta <- rbeta(M,a,b) # draw theta from beta(a,b)
+  Y <- rbinom(M,n,theta) # draw Y|theta from binom(n,theta)
+  
+  # extract the index positions of the samples with Y = y.
+  inx <- which(Y==y)
+  # get those theta's.
+  newtheta <- theta[inx]
+  
+  # get the mean and standard deviation of the newtheta. 
+  mn <- mean(newtheta)
+  std <- sd(newtheta)
+  
+  return(list(mn=mn, std=std)) # wrap up the output in a list and return it.
+}
+
+
+#------------------------------#------------------------------
+#  (b) n = 10, a = b = 1
+#------------------------------#------------------------------
+# (i) write a loop. 
+n <- 10; a <- 1; b <- 1;
+
+set.seed(123) # fix the random seed. 
+post.mn <- NULL; post.std <- NULL; # define two NULL vector to store the posterior mean and std. 
+for(y in 0:n){
+  tem <- MCMC(y,n,a,b)
+  post.mn <- c(post.mn, tem$mn) # store the posterior mean when Y=y into post.mn. 
+  post.std <- c(post.std, tem$std) # store the posterior std when Y=y into post.std. 
+}
+
+# (ii) no loop.
+set.seed(123) # use the same random seed. 
+out <- lapply(0:n, function(t) MCMC(t, n,a,b)) # apply the function MCMC(.) to y=0:10. 
+post.mn1 <- unlist(lapply(out, function(t) t$mn)) # extract the posterior mean.
+post.std1 <- unlist(lapply(out, function(t) t$std)) # extract the posterior std. 
+
+# # compare the two coding methods:
+# post.mn; post.mn1;
+# post.std; post.std1;
+
+
+#------------------------------#------------------------------
+#  (c) n = 10, a = b = 10
+#------------------------------#------------------------------
+# (i) write a loop. 
+n <- 10; a <- 10; b <- 10;
+
+set.seed(123) # fix the random seed. 
+post.mn2 <- NULL; post.std2 <- NULL; # define two NULL vector to store the posterior mean and std. 
+for(y in 0:n){
+  tem <- MCMC(y,n,a,b)
+  post.mn2 <- c(post.mn2, tem$mn) # store the posterior mean when Y=y into post.mn. 
+  post.std2 <- c(post.std2, tem$std) # store the posterior std when Y=y into post.std. 
+}
+
+
+# pdf(file="A2_figure.pdf")
+par(mfrow=c(1,2))
+plot(0:n, post.mn, xlab="y",ylab="Posterior mean", col=1,pch=1)
+points(0:n, post.mn2, col=2,pch=2)
+legend("topleft",c("a=b=1","a=b=10"),col=c(1,2), pch=c(1,2))
+
+plot(0:n, post.std,  xlab="y",ylab="Posterior standard deviation", ,col=1,pch=1)
+points(0:n, post.std2, col=2,pch=2)
+# legend("topleft",c("a=b=1","a=b=10"),col=c(1,2), pch=c(1,2))
+# dev.off()
+
+
+range(post.mn);range(post.mn2)
+
+```
+
