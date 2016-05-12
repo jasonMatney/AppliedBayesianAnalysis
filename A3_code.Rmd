@@ -1,0 +1,124 @@
+---
+  output: pdf_document
+---
+  
+```{r chunk_name, echo=T}
+#------------------------------
+# ST590-A3
+# Author: Yan (Dora) Zhang
+# Date: Feb 4, 2016
+#------------------------------
+
+rm(list=ls())
+#------------------------------#------------------------------
+#  (1) Spell checker. 
+#------------------------------#------------------------------
+library(stringdist)
+
+# Dictionary words. 
+dic <- c("cat", "hat", "fat", "cap", "cup", "hot")
+
+
+func_checker <- function(typed, alpha, theta){
+  #1. Calculate P(A_j) as defined in the solution. 
+  PA <- c(rep(1,5),alpha)/(5+alpha)
+  
+  #2. Calculate P(B|A_j). 
+  # Define a 6-length vector to store the number of wrong letters for each intended word in the dictionary. 
+  X <- rep(NA,6)
+  # Define a 6-length vector to store P(B|A_j) for j=1,2,3,4,5,6.
+  PB <- rep(NA,6)
+  
+  for(j in 1:6){
+    # Get the number of wrong letters for each intended word in the dictionary, i.e., X_j.
+    X[j] <- stringdist(typed,dic[j])
+    
+    # Calculate P(B|A_j).
+    PB[j] <- theta^X[j]*(1-theta)^(3-X[j])
+  }
+  
+  #3. Calculate P(A_i|B) based on the Bayes theorem. 
+  numerator <- PB*PA
+  denominator <- sum(numerator)
+  
+  return(numerator/denominator)
+}
+
+options(digits=3)
+#(i) alpha = 2, theta = 0.1
+func_checker("hat", alpha=2, theta=0.1)
+# func_checker("cip", alpha=2, theta=0.1)
+# func_checker("abs", alpha=2, theta=0.1)
+
+#(ii) alpha = 50, theta = 0.1
+func_checker("hat", alpha=50, theta=0.1)
+# func_checker("cip", alpha=50, theta=0.1)
+# func_checker("abs", alpha=50, theta=0.1)
+
+#(iii) alpha = 2, theta=0.95
+func_checker("hat", alpha=2, theta=0.95)
+# func_checker("cip", alpha=2, theta=0.95)
+# func_checker("abs", alpha=2, theta=0.95)
+
+#------------------------------#------------------------------
+#  (2) Poisson and discrete uniform distribution. 
+#------------------------------#------------------------------
+
+# 1. Prior distributions: 
+lambda <- seq(0,20,1)
+prior <- rep(1/length(lambda), length(lambda))
+prior.mean <- sum(prior*lambda)
+prior.std <- sqrt(sum((lambda - prior.mean)^2*prior))
+par(mfrow=c(1,2))
+plot(lambda, prior, xlab=expression(lambda), ylab="Prior Probability")
+
+# Find an interval so that $\lambda$ in this interval with prior probability 0.9. 
+func_interval <- function(lambda, prob, alpha=0.1){
+  # goal: find the confidence interval for a discrete distribution. I'm trying to make the interval as symmetric as possible. 
+  # Note: the interval is not unique, and you can just start from the first discrete point. 
+  # lambda: the discrete points of the random variable. 
+  # prob: the probability at each discrete point.
+  # alpha: the level of the confidence interval, say 0.1 in this question. 
+  
+  
+  
+  # Sort the lambda and prob from the smallest to the largest. 
+  lambda <- sort(lambda)
+  prob <- prob[order(lambda)]
+  
+  # Sort the lambda and prob from the largest to the smallest. 
+  lambda1 <- sort(lambda,decreasing=T)
+  prob1 <- prob[order(lambda,decreasing=T)]
+  
+  # Get the cumulative sum probability for each discrete point. 
+  cums <- cumsum(prob)
+  cums1 <- cumsum(prob1)
+  
+  # Find the point position to which the cumsum probability will be alpha/2, say 0.05 in this question. 
+  inx <- which(cums>alpha/2)[1]
+  inx1 <- which(cums1>alpha/2)[1]
+  
+  # Find the lower and upper index. 
+  low.inx <- inx; up.inx <- length(lambda)-inx1;
+  tem <- sum(prob[low.inx: up.inx])
+  if(tem>=1-alpha)  return(c(low.inx, up.inx))
+  else return(c(low.inx, up.inx+1))
+}
+
+func_interval(lambda, prior, alpha=0.1) # To test it: sum(prior[2:20])
+
+
+# 2. Likelihood. 
+Y <- 2
+like <- dpois(Y, lambda)  # exp(-lambda)*lambda^Y/factorial(Y)
+
+
+# 3. Posterior distribution: 
+post <- prior*like/sum(prior*like)   # exp(-lambda)*lambda^2/sum(exp(-lambda)*lambda^2)
+post.mean <- sum(post*lambda)        # sum(exp(-lambda)*lambda^2*lambda)/sum(exp(-lambda)*lambda^2)
+post.std <- sqrt(sum((lambda-post.mean)^2*post)) 
+func_interval(lambda, post, alpha=0.1) # To test it: sum(post[2:6])
+
+plot(lambda, post, xlab=expression(lambda), ylab="Posterior Probability")
+```
+
